@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""
+    />
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin=""
+    ></script>
+    <style>
+      #map {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: -1;
+      }
+
+      form {
+        position: absolute;
+        top: 20px;
+        left: 45px;
+        padding: 15px;
+        background-color: rgba(255, 255, 255, 0.8);
+        border-radius: 8px;
+        width: 250px;
+        font-family: Arial, sans-serif;
+        z-index: 10;
+      }
+
+      label {
+        margin-bottom: 5px;
+        font-size: 14px;
+      }
+
+      .form-group {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 10px;
+      }
+
+      .form-group input,
+      .form-group select {
+        width: 45%;
+        padding: 6px;
+        font-size: 14px;
+      }
+
+      button {
+        padding: 8px;
+        background: #4caf50;
+        color: white;
+        border: none;
+        cursor: pointer;
+        font-size: 14px;
+        width: 100%;
+        border-radius: 4px;
+        margin-top: 10px;
+      }
+
+      button:hover {
+        background: #45a049;
+      }
+    </style>
+    <title>Cell Map</title>
+  </head>
+  <body>
+    <form id="cellForm">
+      <div class="form-group">
+        <div>
+          <label for="mcc">MCC:</label>
+          <input type="text" id="mcc" required />
+        </div>
+        <div>
+          <label for="mnc">MNC:</label>
+          <input type="text" id="mnc" required />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <div>
+          <label for="lac">LAC:</label>
+          <input type="text" id="lac" required />
+        </div>
+        <div>
+          <label for="cellId">Cell ID:</label>
+          <input type="text" id="cellId" required />
+        </div>
+      </div>
+
+      <label for="networkType">Network Type:</label>
+      <select id="networkType" required>
+        <option value="auto">Auto</option>
+        <option value="gsm">GSM</option>
+        <option value="cdma">CDMA</option>
+        <option value="umts">UMTS</option>
+        <option value="lte">LTE</option>
+        <option value="nbiot">NBIOT</option>
+      </select>
+
+      <button type="submit">Mark</button>
+    </form>
+
+    <div id="map"></div>
+    <script>
+      const TOKEN = "pk.61ff74da8da14ef78b32eff4920b2492";
+      const URL = "https://ap1.unwiredlabs.com/v2/process";
+
+      async function getLocation(mcc, mnc, lac, cid, networkType) {
+        const payload = {
+          token: TOKEN,
+          radio: networkType === "auto" ? "" : networkType,
+          mcc: parseInt(mcc),
+          mnc: parseInt(mnc),
+          cells: [
+            {
+              lac: parseInt(lac),
+              cid: parseInt(cid),
+            },
+          ],
+          address: 1,
+        };
+
+        try {
+          const response = await fetch(URL, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(payload),
+          });
+          const data = await response.json();
+          if (data.status === "ok") {
+            const { lat, lon, address } = data;
+            return { latitude: lat, longitude: lon, address: address };
+          } else {
+            throw new Error(`Error: ${data.message}`);
+          }
+        } catch (error) {
+          console.error(`Error fetching location: ${error}`);
+          return null;
+        }
+      }
+    </script>
+    <script>
+      var map = L.map("map").setView([21.00405, 105.846027], 10);
+      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 29,
+        attribution:
+          '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      }).addTo(map);
+
+      async function addMarker(lat, lon, add) {
+        var marker = L.marker([lat, lon]).addTo(map).bindPopup(add).openPopup();
+        map.setView([lat, lon], 10);
+      }
+
+      document
+        .getElementById("cellForm")
+        .addEventListener("submit", async function (event) {
+          event.preventDefault();
+
+          var mcc = document.getElementById("mcc").value;
+          var mnc = document.getElementById("mnc").value;
+          var lac = document.getElementById("lac").value;
+          var cid = document.getElementById("cellId").value;
+          var networkType = document.getElementById("networkType").value;
+
+          const location = await getLocation(mcc, mnc, lac, cid, networkType);
+          if (location) {
+            console.log(location.l);
+          }
+          if (location) {
+            console.log("Latitude:", location.latitude);
+            console.log("Longitude:", location.longitude);
+            console.log("Address:", location.address);
+            await addMarker(location.latitude, location.longitude, location.address);
+          } else {
+            alert("Location not found.");
+          }
+        });
+    </script>
+  </body>
+</html>
