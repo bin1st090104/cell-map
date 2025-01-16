@@ -47,6 +47,14 @@
         margin-bottom: 10px;
       }
 
+      .form-item {
+        padding: 5px;
+        width: 50%;
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+      }
+
       .form-group input,
       .form-group select {
         width: 45%;
@@ -75,22 +83,22 @@
   <body>
     <form id="cellForm">
       <div class="form-group">
-        <div>
+        <div class="form-item">
           <label for="mcc">MCC:</label>
           <input type="text" id="mcc" required />
         </div>
-        <div>
+        <div class="form-item">
           <label for="mnc">MNC:</label>
           <input type="text" id="mnc" required />
         </div>
       </div>
 
       <div class="form-group">
-        <div>
+        <div class="form-item">
           <label for="lac">LAC:</label>
           <input type="text" id="lac" required />
         </div>
-        <div>
+        <div class="form-item">
           <label for="cellId">Cell ID:</label>
           <input type="text" id="cellId" required />
         </div>
