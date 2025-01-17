@@ -82,37 +82,66 @@
   </head>
   <body>
     <form id="cellForm">
-      <div class="form-group">
-        <div class="form-item">
-          <label for="mcc">MCC:</label>
-          <input type="text" id="mcc" required />
-        </div>
-        <div class="form-item">
-          <label for="mnc">MNC:</label>
-          <input type="text" id="mnc" required />
-        </div>
-      </div>
-
-      <div class="form-group">
-        <div class="form-item">
-          <label for="lac">LAC:</label>
-          <input type="text" id="lac" required />
-        </div>
-        <div class="form-item">
-          <label for="cellId">Cell ID:</label>
-          <input type="text" id="cellId" required />
+      <div>
+        <label>Input Mode:</label>
+        <div>
+          <label>
+            <input type="radio" name="inputMode" value="cellId" checked />
+            Cell ID
+          </label>
+          <label>
+            <input type="radio" name="inputMode" value="latLong" />
+            Latitude/Longitude
+          </label>
         </div>
       </div>
 
-      <label for="networkType">Network Type:</label>
-      <select id="networkType" required>
-        <option value="auto">Auto</option>
-        <option value="gsm">GSM</option>
-        <option value="cdma">CDMA</option>
-        <option value="umts">UMTS</option>
-        <option value="lte">LTE</option>
-        <option value="nbiot">NBIOT</option>
-      </select>
+      <div id="cellIdFields">
+        <div class="form-group">
+          <div class="form-item">
+            <label for="mcc">MCC:</label>
+            <input type="text" id="mcc" required />
+          </div>
+          <div class="form-item">
+            <label for="mnc">MNC:</label>
+            <input type="text" id="mnc" required />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <div class="form-item">
+            <label for="lac">LAC:</label>
+            <input type="text" id="lac" required />
+          </div>
+          <div class="form-item">
+            <label for="cellId">Cell ID:</label>
+            <input type="text" id="cellId" required />
+          </div>
+        </div>
+
+        <label for="networkType">Network Type:</label>
+        <select id="networkType" required>
+          <option value="auto">Auto</option>
+          <option value="gsm">GSM</option>
+          <option value="cdma">CDMA</option>
+          <option value="umts">UMTS</option>
+          <option value="lte">LTE</option>
+          <option value="nbiot">NBIOT</option>
+        </select>
+      </div>
+
+      <div id="latLongFields" style="display: none;">
+        <div class="form-group">
+          <div class="form-item">
+            <label for="latitude">Latitude:</label>
+            <input type="text" id="latitude" required />
+          </div>
+          <div class="form-item">
+            <label for="longitude">Longitude:</label>
+            <input type="text" id="longitude" required />
+          </div>
+        </div>
+      </div>
 
       <button type="submit">Mark</button>
     </form>
@@ -167,34 +196,86 @@
       }).addTo(map);
 
       async function addMarker(lat, lon, add) {
-        var marker = L.marker([lat, lon]).addTo(map).bindPopup(add).openPopup();
+        var marker = L.marker([lat, lon]).addTo(map);
+        if (add) {
+          marker.bindPopup(add).openPopup();
+        }
         map.setView([lat, lon], 10);
       }
+
+      let currentForm = "cellId";
 
       document
         .getElementById("cellForm")
         .addEventListener("submit", async function (event) {
           event.preventDefault();
 
-          var mcc = document.getElementById("mcc").value;
-          var mnc = document.getElementById("mnc").value;
-          var lac = document.getElementById("lac").value;
-          var cid = document.getElementById("cellId").value;
-          var networkType = document.getElementById("networkType").value;
+          if (currentForm === "cellId") {
+            var mnc = document.getElementById("mnc").value;
+            var lac = document.getElementById("lac").value;
+            var mcc = document.getElementById("mcc").value;
+            var cid = document.getElementById("cellId").value;
+            var networkType = document.getElementById("networkType").value;
 
-          const location = await getLocation(mcc, mnc, lac, cid, networkType);
-          if (location) {
-            console.log(location.l);
-          }
-          if (location) {
-            console.log("Latitude:", location.latitude);
-            console.log("Longitude:", location.longitude);
-            console.log("Address:", location.address);
-            await addMarker(location.latitude, location.longitude, location.address);
+            const location = await getLocation(mcc, mnc, lac, cid, networkType);
+            if (location) {
+              console.log(location.l);
+            }
+            if (location) {
+              console.log("Latitude:", location.latitude);
+              console.log("Longitude:", location.longitude);
+              console.log("Address:", location.address);
+              await addMarker(
+                location.latitude,
+                location.longitude,
+                location.address
+              );
+            } else {
+              alert("Location not found.");
+            }
           } else {
-            alert("Location not found.");
+            let lat = document.getElementById("latitude").value;
+            let lon = document.getElementById("longitude").value;
+            await addMarker(lat, lon, null);
           }
         });
+      document.addEventListener("DOMContentLoaded", () => {
+        const cellIdFields = document.getElementById("cellIdFields");
+        const latLongFields = document.getElementById("latLongFields");
+        const inputModeRadios = document.querySelectorAll(
+          "input[name='inputMode']"
+        );
+        let cellIdInputs = document.querySelectorAll(
+          "#cellIdFields > div > div > input"
+        );
+        let latLongInputs = document.querySelectorAll(
+          "#latLongFields > div > div > input"
+        );
+
+        function updInputs(inputs, status) {
+          inputs.forEach((input) => {
+            input.disabled = status;
+          });
+        }
+
+        inputModeRadios.forEach((radio) => {
+          radio.addEventListener("change", (event) => {
+            if (event.target.value === "cellId") {
+              currentForm = "cellId";
+              cellIdFields.style.display = "block";
+              updInputs(cellIdInputs, false);
+              latLongFields.style.display = "none";
+              updInputs(latLongInputs, true);
+            } else if (event.target.value === "latLong") {
+              currentForm = "latLong";
+              cellIdFields.style.display = "none";
+              updInputs(cellIdInputs, true);
+              latLongFields.style.display = "block";
+              updInputs(latLongInputs, false);
+            }
+          });
+        });
+      });
     </script>
   </body>
 </html>
